@@ -1,148 +1,724 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-    #options button { display: block; margin: 5px 0; padding: 10px; width: 100%; }
-    #score-container, #navigation { margin-top: 20px; text-align: center; }
-    #navigation select { padding: 5px; }
-    #navigation button { margin-left: 10px; padding: 5px 10px; }
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    .soru { font-weight: bold; margin-bottom: 10px; }
+    .secenekler button {
+      display: block;
+      margin: 10px 0;
+      padding: 12px;
+      width: 100%;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+      cursor: pointer;
+    }
+    .secenekler button:hover { background-color: #e0e0e0; }
+    #navigasyon { margin-top: 20px; }
+    #sonuc { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>Quiz App</h1>
 
-  <div id="quiz-container">
-    <div id="question"></div>
-    <div id="options"></div>
-    <button onclick="finishQuiz()">Finish Test</button>
+<h1>Test</h1>
 
-    <div id="navigation">
-      <label for="questionSelect">Go to question:</label>
-      <select id="questionSelect"></select>
-      <button onclick="goToQuestion()">Go</button>
-    </div>
-  </div>
+<div id="test">
+  <div class="soru" id="soru-metin"></div>
+  <div class="secenekler" id="secenekler"></div>
+  <div id="geri-bildirim" style="margin-top:10px; font-weight:bold;"></div>
+</div>
 
-  <div id="score-container" style="display: none;">
-    <h2 id="score-text"></h2>
-    <button onclick="restartQuiz()">Try Again</button>
-  </div>
+<div id="navigasyon">
+  <label for="soru-sec">Soruyu Seç:</label>
+  <select id="soru-sec"></select>
+  <button onclick="cevapla()">Cevapla</button>
+  <button onclick="sonrakiSoru()">Sonraki Soru</button>
+  <button onclick="testiBitir()">Testi Bitir</button>
+</div>
 
-  <script>
-    const DATA_URL = "https://script.google.com/macros/s/AKfycbwey0dl1JegdZT9OaIPIet7c49yfn6lwCvLLuVW9l8zmWs_S-IZUXdk5YNk3i8-5lcdfg/exec";
+<div id="sonuc"></div>
+<div id="bastan" style="display:none; margin-top:10px;">
+  <button onclick="bastanBasla()">Baştan Başla</button>
+</div>
 
-    let questions = [];
-    let currentQuestionIndex = parseInt(localStorage.getItem("currentIndex")) || 0;
-    let score = parseInt(localStorage.getItem("score")) || 0;
-    let answered = JSON.parse(localStorage.getItem("answered") || "[]");
+<script>
+const sorular = [
+  {
+    soru: "1.  Aşağıdakilerden hangisi tekil terime örnektir?",
+    secenekler: ["a) İstanbul ", "b) Tüm şehirler", "c) Bazı şehirler", "d) Şehir", "e) İnsanlık"],
+    cevap: 0
+  },
+  {
+    soru: "2.  Aşağıdakilerden hangisi bir önerme cümlesidir?",
+    secenekler: ["a) Ah bir çocuk olsam!", "b) Bugün nasılsınız?", "c) Bazı kuşları hiç sevmem!", "d) Aristoteles’in pek çok kitabı var.", "e) Dünya gezegendir."],
+    cevap: 4
+  },
+  {
+    soru: "3.  Aşağıdakilerden hangisi postulat’ın tanımıdır?",
+    secenekler: ["a) Kanıtlanabilen bilimsel önermedir.", "b) Mantıksal usavurma ile kanıtlanan önermenin ya da özelliğin bildirimi.", "c) Geometride ispatına gerek duyulmadan, doğruluğu kendiliğinden apaçık olduğu düşünülen önermedir.", "d) Verilmiş iki önermeden, bu önermelerin içerdiğini içinde bulunduran üçüncü bir önermeyi çıkarma işlemidir.", "e) Bir olgunun sürekli olarak doğrulanmış gözlem ve deneyler baz alınarak yapılan bir açıklamasıdır."],
+    cevap: 2
+  },
+  {
+    soru: "4.  Aşağıdakilerden hangisi Öklid’in postulatlarından biri değildir?",
+    secenekler: ["a) Bir noktadan bir noktaya tek doğru çizilebilir.", "b) Sonlu bir doğru yine bir doğru olarak uzatılabilir.", "c) Bir merkez ve bir mesafe çemberi tanımlar.", "d) Bütün dik açılar birbirine eşittir.", "e) Bir doğrunun dışındaki noktadan bu doğruya tam iki paralel çizilir."],
+    cevap: 4
+  },
+  {
+    soru: "5.  Öklid’in Tüm Öğeleri ile İddia Ettikleri adlı eser kime aittir?",
+    secenekler: ["a) Öklid", "b) Saccheri ", "c) Labochevsky", "d) Boyle", "e) John Wallis"],
+    cevap: 1
+  },
+  {
+    soru: "6.  Aşağıdakilerden hangisi Montucla’nın eseridir?",
+    secenekler: ["a) Öklid’in Tüm Öğeleri ile İddia Ettikleri", "b) Matematik Tarihi ", "c) Paralellik Teorisini Kanıtlama Çabalarının Yorumu", "d) Geometrinin Temelinde Yatan Hipotezler Üzerine", "e) Geometri’nin Temelleri"],
+    cevap: 1
+  },
+  {
+    soru: "7.  Aşağıdakilerden hangisi geniş açı hipotezini geliştirmiştir?",
+    secenekler: ["a) Saccheri", "b) Labochevsky", "c) Boyle", "d) John Wallis", "e) Riemann "],
+    cevap: 4
+  },
+  {
+    soru: "8.  Aşağıdakilerden hangisi dar açı hipotezini geliştirmiştir?",
+    secenekler: ["a) Saccheri", "b) Labochevsky ", "c) Boyle", "d) John Wallis", "e) Riemann"],
+    cevap: 1
+  },
+  {
+    soru: "9.  Aşağıdakilerden hangisi Logica Demonstrativa (Kanıtlama Mantığı)’nın yazarıdır?",
+    secenekler: ["a) Saccheri ", "b) Labochevsky", "c) Boyle", "d) John Wallis", "e) Riemann"],
+    cevap: 0
+  },
+  {
+    soru: "10.  Kanıtlama Mantığı eserinin önemi nedir?",
+    secenekler: ["a) Paralellik postulatının zorunlu doğruluğunu ortaya koymadaki başarısı", "b) Paralellik postulatının kendi değillemesinden çıktığını ispatlamış olması ", "c) Öklitçi olmayan geometri teoremlerini barındıran ilk eser olması", "d) Mantık teoremlerini barındıran ilk eser olması", "e) Öklid önermelerinin bir postulat olarak görünmelerinin yanlışlığını ispatlaması"],
+    cevap: 2
+  },
+  {
+    soru: "11.  Aşağıdakilerden hangisi ‘Cebrin Temelleri’ adlı makale dizisinin yazarıdır?",
+    secenekler: ["a) Boole", "b) H. Grassmann", "c) D. F. Gregory", "d) De Morgan ", "e) Sir William Rowan Hamilton"],
+    cevap: 3
+  },
+  {
+    soru: "12.  Varyasyon Hesabındaki Belirli Teoremler Üzerine adlı makaleyi yazan matematikçi aşağıdakilerden hangisidir?",
+    secenekler: ["a) Öklid", "b) Saccheri", "c) Labochevsky", "d) Boole ", "e) John Wallis"],
+    cevap: 3
+  },
+  {
+    soru: "13.  Mantığın Matematiksel Analizi adlı eser kime aittir?",
+    secenekler: ["a) Öklid", "b) John Wallis", "c) Saccheri", "d) Labochevsky", "e) Boole "],
+    cevap: 4
+  },
+  {
+    soru: "14.  Boole’nin hangi eseri Russell tarafından “saf matematiğin keşfedildiği” eser olarak tanımlanmıstır:",
+    secenekler: ["a) Düşünce Yasaları ", "b) Analizde Genel bir Metot Üzerine", "c) Varyasyon Hesabındaki Belirli Teoremler Üzerine", "d) Cebrin Temelleri", "e) Genişleme Bilimi"],
+    cevap: 0
+  },
+  {
+    soru: "15.  Aşağıdakilerden hangisi Boole sisteminde “Her X Y’dir” önermesine karşılık gelen denklemdir?",
+    secenekler: ["a) x y = 0", "b) x (1 - y) = 0 ", "c) x y = v", "d) x (1 – y) = v", "e) x y = 1"],
+    cevap: 1
+  },
+  {
+    soru: "16.  Aşağıdakilerden hangisi Boole sisteminde “Bazı X’ler Y’dir” önermesine karşılık gelen denklemdir?",
+    secenekler: ["a) x y = 0", "b) x (1 - y) = 0", "c) x y = v ", "d) x (1 – y) = v", "e) x y = 1"],
+    cevap: 2
+  },
+  {
+    soru: "17.  Aşağıdakilerden hangisi Boole sisteminde “Hiçbir X, Y değildir” önermesine karşılık gelen denklemdir?",
+    secenekler: ["a) x y = 0 ", "b) x (1 - y) = 0", "c) x y = v", "d) x (1 – y) = v", "e) x y = 1"],
+    cevap: 0
+  },
+  {
+    soru: "18.  Aşağıdakilerden hangisi Boole sisteminde “Bazı X’ler Y değildir” önermesine karşılık gelen denklemdir?",
+    secenekler: ["a) x y = 0", "b) x (1 - y) = 0", "c) x y = v", "d) x (1 – y) = v ", "e) x y = 1"],
+    cevap: 3
+  },
+  {
+    soru: "19.  Aşağıdakilerden hangisi Philosophiæ Naturalis Principia Mathematica eserinin yazarıdır?",
+    secenekler: ["a) Russell", "b) Newton", "c) Whitehead", "d) Emanuel Swedenberg", "e) Galilei"],
+    cevap: 1
+  },
+  {
+    soru: "20.  Aşağıdakilerden hangisinde tüm işlemler sınırlama olmadan yapılabilir?",
+    secenekler: ["a) İşaretli tam sayılar", "b) Rasyonel sayılar", "c) Reel sayılar", "d) Karmaşık sayılar ", "e) Kesirli sayılar"],
+    cevap: 3
+  },
+  {
+    soru: "21.  Aşağıdakilerden hangisinde kök alma işlemini yapabiliriz?",
+    secenekler: ["a) İşaretli tam sayılar ve reel sayılar", "b) Reel sayılar ve rasyonel sayılar", "c) Kesirli sayılar ve rasyonel sayılar", "d) Karmaşık sayılar ve kesirli sayılar", "e) Karmaşık sayılar ve reel sayılar "],
+    cevap: 4
+  },
+  {
+    soru: "22.  ‘Sembolik Cebrin Gerçek Doğası Üzerine’ başlıklı makale kime aittir?",
+    secenekler: ["a) Peacock", "b) H. Grassmann", "c) D. F. Gregory ", "d) De Morgan", "e) Sir William Rowan Hamilton"],
+    cevap: 2
+  },
+  {
+    soru: "23.  Aşağıdakilerden hangisi “Genişleme Bilimi” başlıklı kitabın yazarıdır?",
+    secenekler: ["a) Peacock", "b) H. Grassmann ", "c) D. F. Gregory", "d) De Morgan", "e) Sir William Rowan Hamilton"],
+    cevap: 1
+  },
+  {
+    soru: "24.  “Diyagonal yöntem ilk kez kim tarafından geliştirilmiştir?",
+    secenekler: ["a) Cantor ", "b) Frege", "c) Boole", "d) Tarski", "e) Leibniz"],
+    cevap: 0
+  },
+  {
+    soru: "25.  Aritmetiğin mantık ile özdeşliğini detaylı olarak göstermeye çalışan kişi aşağıdakilerden hangisidir?",
+    secenekler: ["a) Cantor", "b) Frege ", "c) Boole", "d) Tarski", "e) Leibniz"],
+    cevap: 1
+  },
+  {
+    soru: "26.  Ünlü Begriffsschrift eseri kime aittir?",
+    secenekler: ["a) Cantor", "b) Boole", "c) Frege ", "d) Tarski", "e) Leibniz"],
+    cevap: 2
+  },
+  {
+    soru: "27.  Aşağıdakilerden hangisi Frege’ye ait bir eser değildir?",
+    secenekler: ["a) Aritmetiğin Temelleri", "b) Aritmetiğin Temel Yasaları", "c) Kavram Yazısı", "d) Evrensel Cebir ", "e) Kavram ve Nesne Üzerine"],
+    cevap: 3
+  },
+  {
+    soru: "28.  Aşağıdakilerden hangisi Begriffsschrift’in özelliklerinden biri değildir?",
+    secenekler: ["a) Formel bir saf düşünce dili oluşturma çabasıyla yazılmıştır.", "b) Günlük dilden daha düzenli bir düşünce dili oluşturma çabasıyla yazılmıştır.", "c) Dedüksiyonda kesinliği sağlamak çabasıyla yazılmıştır.", "d) Kavramsal içeriğe izin veren bir sembolleştirme sistemi oluşturmak çabasıyla yazılmıştır.", "e) Mantık ile aritmetiğin özdeş olamayacağını göstermek amacıyla yazılmıştır."],
+    cevap: 4
+  },
+  {
+    soru: "29.  Aşağıdakilerden hangisimantıkla ilgilenmemiştir?",
+    secenekler: ["a) Hegel", "b) Frege", "c) Peirce", "d) Venn", "e) Kopernik "],
+    cevap: 4
+  },
+  {
+    soru: "30.  Yüklemler mantığının yaratıcısı kimdir?",
+    secenekler: ["a) Frege ", "b) Peirce", "c) Venn", "d) Tarski", "e) Gödel"],
+    cevap: 0
+  },
+  {
+    soru: "31.  Teoremlerinde tam sayı aritmetiğini içerecek kadar karmaşık herhangi bir sistemin içinde, sistemin aksiyomlarından yola çıkarak doğruluğu veya yanlışlığı kanıtlanamayacakönermeler bulunacağını ispatlayan AvusturyalıAmerikan mantıkçı ve matematikçi kimdir?",
+    secenekler: ["a) Frege", "b) Peirce", "c) Venn", "d) Tarski", "e) Gödel "],
+    cevap: 4
+  },
+  {
+    soru: "32.  Aşağıdakilerden hangisi anlamları ve anlamların gösterdiği simgeler arasındaki bağı ele alarak tartışan semantik metodunu biçimlendiren kişidir?",
+    secenekler: ["a) Frege", "b) Peirce", "c) Venn", "d) Tarski ", "e) Lesniewski"],
+    cevap: 3
+  },
+  {
+    soru: "33.  “Mereoloji” kuramı aşağıdakilerden kime aittir?",
+    secenekler: ["a) Peirce", "b) Venn", "c) Tarski", "d) Frege", "e) Lesniewski "],
+    cevap: 4
+  },
+  {
+    soru: "34.  Aşağıdaki önermelerden hangisi “Ayşe Aylin’in arkadaşıdır” önermesinin çevrilmiş halidir?",
+    secenekler: ["a) Ayşe ve Aylin arkadaştır.", "b) Aylin ve Ayşe arkadaştır.", "c) Ayşe Aylin’in arkadaşı değildir.", "d) Aylin Ayşe’nin arkadaşı değildir.", "e) Aylin Ayşe’nin arkadaşıdır. "],
+    cevap: 4
+  },
+  {
+    soru: "35.  Aşağıdaki isimlerden hangisi, kendi adıyla anılan paradoksla G Frege'nin mantık sisteminin geçersizliğini göstermiştir?",
+    secenekler: ["a) A. Tarski", "b) J. Lukasiewicz", "c) L. Wittgenstein", "d) B. Russell ", "e) E. Post"],
+    cevap: 3
+  },
+  {
+    soru: "36.  Aşağıdakilerden hangisi günümüz mantıkçılarından birisi değildir?",
+    secenekler: ["a) G. Boole ", "b) G. Boolos", "c) M. Dummett", "d) L. Zade", "e) S. Haack"],
+    cevap: 0
+  },
+  {
+    soru: "37.  Puslu Mantık adı verilen mantık teorisinin mimarı aşağılardakinden hangisidir?",
+    secenekler: ["a) E. Post", "b) T. Kotarbinski", "c) A. Tarski", "d) L. Zade ", "e) J. Lukasiewicz"],
+    cevap: 3
+  },
+  {
+    soru: "38.  Aşağıdakilerden hangisi Frege’ye ait bir eser değildir? (6Ünite 4soru ile aynı)",
+    secenekler: ["a) Aritmetiğin Temelleri", "b) Aritmetiğin Temel Yasaları", "c) Kavram Yazısı", "d) Evrensel Cebir ", "e) Kavram ve Nesne Üzerine"],
+    cevap: 3
+  },
+  {
+    soru: "39. Modern dönemde modal mantığa yönelen ilgi hangi mantıkçının çalışmalarıyla başlar?",
+    secenekler: ["A) Boole", "B) Lewis ", "C) O. Becker", "D) C. H. Langford", "E) Frege"],
+    cevap: 1
+  },
+  {
+    soru: "40.  Hangi mantıkçı eser eşleşmesi yanlıştır?",
+    secenekler: ["a) - Peano – Notation de logique mathematique (Matematik Mantığı Notasyonu)", "b) - Whitehead, Russell – Principia Mathematica", "c) - Frege – Begriffsschrift (Kavram Yazısı)", "d) - De Morgan – Organon ", ""],
+    cevap: 3
+  },
+  {
+    soru: "41.  Lewis son modal mantık açıklamasını aşağıdakikitaplardan hangisinde yapmıştır?",
+    secenekler: ["a) - Sembolik Mantık ", "b) - Kategoriler", "c) - Aritmetiğin Temelleri", "d) - Mantığa Giriş", ""],
+    cevap: 0
+  },
+  {
+    soru: "42.  Begriffsschrift eserinde Frege modal farklılıkları neden reddetmiştir?",
+    secenekler: ["a) - Formel oldukları için.", "b) - İçerikten yoksun oldukları için.", "c) - İnsan bilgisini içerdikleri için. ", "d) - Zorunlu oldukları için.", ""],
+    cevap: 2
+  },
+  {
+    soru: "43.  Quine aşağıdakilerden hangisini mantığın konuları içerisine dahil eder?",
+    secenekler: ["a) Birinci dereceden mantık ", "b) İkinci dereceden mantık", "c) Kümeler kuramı", "d) Principia Mathemarica`da mantık olarak yazılanların çoğu", "e) Modalite"],
+    cevap: 0
+  },
+  {
+    soru: "44.  Aşağıdakilerden hangisi Turing makinesinin özelliklerinden biri değildir?",
+    secenekler: ["a) Kuramsal bir hesap makinesidir.", "b) İnsan zihnini taklit eden bir makinedir. ", "c) Hesaplarını kutucuklara bölünmüş ve her kutucukta yalnızca bir sembol bulunabilen bir bant aracılığıyla yapar.", "d) Makinenin basit işlemleri okumak, banda semboller yazmak ve bandı bir kere sağa ya da sola oynatmaktır.", "e) Bir karedeki sembolü okuduğu zaman bulunduğu duruma ve sembolün ne olduğuna göre durumu değişebilir."],
+    cevap: 1
+  },
+  {
+    soru: "45.  Aşağıdakilerden hangisi Boole sisteminin özel ilkesidir?",
+    secenekler: ["a) X (1 + X) = 0", "b) X (1 + Y) = 0", "c) X (1 - X) = 0 ", "d) X (1 - Y) = V", "e) X (1 - X) = 1"],
+    cevap: 2
+  },
+  {
+    soru: "46.  Aşağıdakilerden hangisi Tarski'nin yaptıklarından biri değildir?",
+    secenekler: ["a) - Mantıksal sonuç için aksiyomlar üretmiştir.", "b) - Dedüktif sistemler, mantık cebrive tanımlanabilme kuramı üzerinde çalışmıştır.", "c) - Birkaç öğrencisi ile birlikte geliştirdikleri model kuramı ile sonuçlanan semantik yöntemleri, Hilbert'in kanıtlama kuramına ilişkin matematiğini radikal bir şekilde dönüştürmüştür", "d) - Mantıksal olanlar ve mantık dışı olanlar ayrımı yapmıştır.", "e) - Hilbert`in 2. probleminitamamen, 1.probleminide kısmen çözmüştür. "],
+    cevap: 4
+  },
+  {
+    soru: "47.  Tarski hakkındaki aşağıda verilen bilgilerden hangisi yanlıştır?",
+    secenekler: ["a) - Varşova Üniversitesi`nde matematik ve mantık dersleri vermiştir.", "b) - Lukasiewicz`in asistanlığını yapmıştır.", "c) - Teitelbaum soyadını sonradan Tarski olarak değiştirmiştir.", "d) - Viyana çevresi üyelerinden biridir. ", "e) - Amerika`ya göç etmiş ve Amerikan vatandaşı olmuştur."],
+    cevap: 3
+  },
+  {
+    soru: "48.  Aşağıdakilerden hangisi Frege’nin yargı ile içerik arasında ayrım yaptığı çalışmasıdır?",
+    secenekler: ["a) - Begriffsschrift (Kavram Yazısı)", "b) - Grundgesetze (Temel Yasalar)", "c) - Die Grundlagen der Arithmetik (Aritmetiğin TemelleriÜzerine )", "d) - On Sense and Reference (Anlam ve Gönderim Üzerine)", "e) - Logical Investigations (Mantıksal Sorgulamalar)"],
+    cevap: 0
+  },
+  {
+    soru: "49.  Frege’ye göre bildirim cümleleri için kullanılabilecek bir ifadedir?",
+    secenekler: ["a) - Özel ad ", "b) - Genel ad", "c) - Yargı cümleleri", "d) - Soyut ad", "e) - Somut ad"],
+    cevap: 0
+  },
+  {
+    soru: "50.  Aşağıdakilerden hangisi tekil terime örnektir? (1ünite 1soru ile aynı)",
+    secenekler: ["a) – İstanbul ", "b) - Tüm şehirler", "c) - Bazı şehirler", "d) - Şehir", "e) - İnsanlık"],
+    cevap: 0
+  },
+  {
+    soru: "51.  Frege kuramına göre bir nesneden bahsedildiğinde aşağıdakilerden hangisi kastedilmez?",
+    secenekler: ["a) – Fonksiyon ", "b) - Fonksiyon olmayan her şey", "c) - İnsanlar", "d) - Sayılar", "e) - Doğruluk değeri"],
+    cevap: 0
+  },
+  {
+    soru: "52.  Aşağıdakilerden hangisi “kavram”ı en uygun şekilde tanımlayan ifadedir?",
+    secenekler: ["a) - Bir fonksiyonun içlemi", "b) - Savları olanlarla değerleriolanları ilişkilendiren bir şey", "c) - Bütün değerleri doğruluk değeri olan tek savlı bir fonksiyon", "d) - Değer alanı veya kümesi", "e) - Tümel önermeler"],
+    cevap: 2
+  },
+  {
+    soru: "53. Aşağıdakilerden hangisi Frege’nin mantık gösteriminde sahip olduğu özelliklerden biri değildir?",
+    secenekler: ["a) - Kullanışlı bir yazı diline sahip olmak ", "b) - Farklı fontlardan simge kullanımı", "c) - Sembollerin kullanılmasındaki ayrımın altını çizmesi", "d) - Sık sık karıştırılan harflerin rollerini ayırt etmek", "e) - Matematiğin gösteriminde günlük dile bir alternatif sağlamayı amaçlamak"],
+    cevap: 0
+  },
+  {
+    soru: "54.  Principia Mathematica adlı eser kim tarafından yazılmıştır?",
+    secenekler: ["a) - Newton", "b) - Boole", "c) - Frege", "d) - Whitehead ve Russell", "e) – Lukasiewicz"],
+    cevap: 3
+  },
+  {
+    soru: "55. Mantık Yöntemleri başlıklı eser hangi düşünüre aittir?",
+    secenekler: ["(•) - Labochevsky", "(•) - Boyle", "(•) – Riemann", "(•) - John Wallis", "(•) – Quine "],
+    cevap: 4
+  },
+  {
+    soru: "56. Mantık Felsefesi başlıklı eser hangi düşünüre aittir?",
+    secenekler: ["(•) - Labochevsky", "(•) - Boyle", "(•) - Riemann", "(•) - John Wallis", "(•) – Quine "],
+    cevap: 4
+  },
+  {
+    soru: "57. Matematiksel Mantık başlıklı eser hangi düşünüre aittir?",
+    secenekler: ["(•) - Labochevsky", "(•) - Boyle", "(•) - Riemann", "(•) - John Wallis", "(•) – Quine "],
+    cevap: 4
+  },
+  {
+    soru: "58. Batı Felsefesi Tarihi başlıklı eser hangi düşünüre aittir?",
+    secenekler: ["(•) - Labochevsky", "(•) - Boyle", "(•) - Bertrand Russell ", "(•) - John Wallis", "(•) – Quine"],
+    cevap: 2
+  },
+  {
+    soru: "59.  Aşağıdaki önermelerden hangisi “Bazı insanlar filozoftur” önermesinin evriğidir? (5Ünite)",
+    secenekler: ["a) Bazı filozoflar insandır. ", "b) Bazı insanlar filozof değildir.", "c) İnsanların bazısı filozoftur.", "d) Birtakım insanlar filozof değildir.", "e) Filozof olan insanlar vardır."],
+    cevap: 0
+  },
+  {
+    soru: "60.  Aşağıdakilerden hangisi “Kimi insanlar mantıkçıdır” önermesinin simetrisidir? (5Ünite)",
+    secenekler: ["a) Kimi insanlar mantıkçı değildir.", "b) İnsanların bazısı mantıkçıdır.", "c) Bazı mantıkçı insanlar vardır.", "d) Kimi mantıkçılar insandır.", "e) Kimi mantıkçılar insan değildir."],
+    cevap: 3
+  },
+  {
+    soru: "61.  Aşağıdakilerden hangisi Tarski'nin yaptıklarından biri değildir? (13Ünite -Tarski)",
+    secenekler: ["a) Mantıksal sonuç için aksiyomlar üretmiştir.", "b) Dedüktif sistemler, mantık cebri ve tanımlanabilme kuramı üzerinde çalışmıştır.", "c) Birkaç öğrencisi ile birlikte geliştirdikleri model kuramı ile sonuçlanan semantik yöntemleri, Hilbert'in kanıtlama kuramına ilişkin matematiğini radikal bir şekilde dönüştürmüştür", "d) Mantıksal olanlar ve mantık dışı olanlarayrımı yapmıştır.", "e) Hilbert`in 2. problemini tamamen, 1.problemini de kısmen çözmüştür. "],
+    cevap: 4
+  },
+  {
+    soru: "62.  Frege’ye göre aşağıdakilerden hangisi bir bağıntıdır? (8Ünite)",
+    secenekler: ["a) Ali, Ali’dir.", "b) Ben, ben olmayan değildir.", "c) Evlenmemiş erkek bekârdır.", "d) Boşanmış kadın duldur.", "e) x, y’nin babasıdır. "],
+    cevap: 4
+  },
+  {
+    soru: "63.  Aşağıdakilerden hangisi Russell paradoksu olarak bilinir? (11 ve 12 Ünite)",
+    secenekler: ["a) Berber Paradoksu ", "b) Akhilleus Paradoksu", "c) Ok Paradoksu", "d) Dikotomi Paradoksu", "e) Kurbağa Paradoksu"],
+    cevap: 0
+  },
+  {
+    soru: "64.  Geometrinin Temelleri Üzerine Bir Deneme başlıklı eser hangi düşünüre aittir?",
+    secenekler: ["a) Labochevsky", "b) Boyle", "c) Bertrand Russell ", "d) John Wallis", "e) Quine"],
+    cevap: 2
+  },
+  {
+    soru: "65.  Aşağıdakilerden hangisi geniş açı hipotezinin tanımıdır?",
+    secenekler: ["a) Öklitçi geometrinin tutarlılığı ile ilgili bir hipotezdir.", "b) Fiziksel uzayda bulunan bir üçgenin iç açılarının iki dik açıya eşit olup olmadıklarının ortaya konulduğu hipotezdir.", "c) Belli bir noktadan belli bir doğruya paralel hiçbir doğrunun bulunmadığı ve her doğrunun ortaya çıktığında kendi üzerine döndüğü eliptik geometri ile ilgili hipotezdir. ", "d) Öklid’in paralellik postulatının değillenmesiyle bir çelişkinin ortaya çıktığını savunan hipotezdir.", "e) Belli bir noktadan belli bir doğruya paralel iki doğrunun bulunduğu hiperbolik geometri ile ilgili hipotezdir."],
+    cevap: 2
+  },
+  {
+    soru: "66.  Venn şeması hangi geometrik şekille gösterilir? (4Ünite)",
+    secenekler: ["a) Yamuk", "b) Üçgen", "c) Dikdörtgen", "d) Kare", "e) Daire "],
+    cevap: 4
+  },
+  {
+    soru: "67.  Aşağıdakilerden hangisi Venn şemasının kullanıldığı alanlardan biri değildir? (4Ünite)",
+    secenekler: ["a-) İstatistik", "b-) Bilgisayar bilimleri", "c-) Olasılık ", "d-) Kümeler kuramı", "e-) Elektrik devreleri"],
+    cevap: 2
+  },
+  {
+    soru: "68.  Aşağıdakilerden hangisi Frege’nin çağdaşı değildir?",
+    secenekler: ["a) Dedekind", "b) Cantor", "c) Peano", "d) Schröder", "e) Boole"],
+    cevap: 4
+  },
+  {
+    soru: "69.  Mantıkta kategorik kavramı ilk defa kim tarafından ortaya atılmıştır? (1Ünite)",
+    secenekler: ["a) Dedekind", "b) Riemann", "c) Hilbert", "d) Veblen", "e) Dewey"],
+    cevap: 3
+  },
+  {
+    soru: "70.  Genel cebir, ölçü kuramı, matematiksel mantık, kümeler kuramı ve matematik alanlarında yaptığı katkılarla tanınan Polonya asıllı ABD'li matematikçi ve mantıkçı kimdir? (13 Ünite)",
+    secenekler: ["a) Venn", "b) Gödel", "c) Frege", "d) Tarski ", "e) Peirce"],
+    cevap: 3
+  },
+  {
+    soru: "71.  Aşağıdakilerden hangisi matematiksel mantık kavramının yaratıcısıdır? (3Ünite)",
+    secenekler: ["a-) Boole", "b-) E. Schröder", "c-) Huntington", "d-) Peirce", "e-) Sheffer"],
+    cevap: 0
+  },
+  {
+    soru: "72.  Mantıksal sonuç için aksiyomlar üretmiştir 1936'da \"Mantıksal Sonuç Kavramı Üzerine\" adlı bir makale yayınlamıştır 1937'de dedüktif metodun doğası ve amacı üzerine görüşlerini ve bilim çalışmalarında mantığın rolünü anlatan bir makale yayınlamıştır Yukarıda hakkında bilgi verilen matematikçi ve mantıkçı kimdir? (13 Ünite)",
+    secenekler: ["A) Gödel", "B) Frege", "C) Peirce", "D) Venn", "E) Tarski "],
+    cevap: 4
+  },
+  {
+    soru: "73.  Aşağıdaki sayılardan hangisi çıkarma işlemi altında kapalı değildir?",
+    secenekler: ["a-) İşaretli tam sayılar", "b-) Rasyonle sayılar", "c-) Doğal saylar ", "d-) Kesirli sayılar", "e-) Reel sayılar"],
+    cevap: 2
+  },
+  {
+    soru: "74.  Aşağıdakilerden hangisi “Mécanique Analytique” eserinin yazarıdır? (3 Ünite)",
+    secenekler: ["a-) Laplace", "b-) Lagrage ", "c-) Newton", "d-) Russel", "e-) Whitehead"],
+    cevap: 1
+  },
+  {
+    soru: "75.  Aşağıdakilerden hangisi \"Mécanique céleste\" eserinin yazarıdır? (3Ünite)",
+    secenekler: ["a) Laplace ", "b) Lagrage", "c) Frege", "d) Boole", "e) Newton"],
+    cevap: 0
+  },
+  {
+    soru: "76.  “Evrensel Cebir” adlı eser aşağıdaki isimlerden hangisine aittir? (4Ünite –413)",
+    secenekler: ["a) Laplace", "b) Whitehead ", "c) Aristoteles", "d) Lagrage", "e) Newton"],
+    cevap: 1
+  },
+  {
+    soru: "77.  Aşağıdakilerden hangisi Boole sisteminde yeni olana işaret etmez? (4Ünite)",
+    secenekler: ["a-) Doğruluk-fonksiyonlarının tikel-evetlemeli yasa biçiminde ifade edilmesi", "b-) Doğruluk-fonksiyonları kuramı", "c-) iki-değerli Aristoteles mantığını matematiksel temellere oturtan simgesel mantığı yaratması", "d-) Doğruluk tabloları kullanımı ", "e-) Seçmeli fonksiyonlar kuramı"],
+    cevap: 3
+  },
+  {
+    soru: "78.  Aşağıdakilerden hangisi Boole’nin çalıştığı konulardan biri değildir? (3Ünite)",
+    secenekler: ["a-) Geometri", "b-) Mantık", "c-) Diferansiyel denklemler", "d-) Trigonometri ", "e-) Olasılık"],
+    cevap: 3
+  },
+  {
+    soru: "79.  Yüklemler mantığını kurgulayıp eserlerinde örnekleyen kimdir? (7Ünite)",
+    secenekler: ["a-) Gödel", "b-) Tarski", "c-) Peirce", "d-) Frege ", "e-) Venn"],
+    cevap: 3
+  },
+  {
+    soru: "80.  Mantıksal Tipler Kuramı aşağıdakilerden hangisine aittir? (11Ünite)",
+    secenekler: ["A) Berry", "B) Burali - Forti", "C) Cantor", "D) Russell ", "E) Poincare"],
+    cevap: 3
+  },
+  {
+    soru: "81.  Basit matematiksel hesaplamanın mantıksal ifadelerinin mümkün olması için aşağıdakilerden hangisi gerekli değildir? (14 Ünite)",
+    secenekler: ["a) Bileşik önerme ", "b) Değilleme", "c) Tümel-evetleme", "d) Koşullu bağımlılık", "e) Tikel-evetleme"],
+    cevap: 0
+  },
+  {
+    soru: "82.  Aşağıdakilerden hangisi orijinal sayılarımıza eklenen yeni tür sayılardan değildir? (2Ünite)",
+    secenekler: ["a) Negatif sayılar", "b) Sanal sayılar", "c) Kesirli sayılar", "d) Doğal sayılar", "e) İrrasyonel sayılar"],
+    cevap: 3
+  },
+  {
+    soru: "83.  Önermelerin doğruluk-koşullarını göstermek için çakışan alanlara sahip şemalar (yani, topolojik modeller) kullanan mantıkçı ve matematikçi kimdir? (4Ünite)",
+    secenekler: ["a) Venn ", "b) Tarski", "c) Frege", "d) Gödel", "e) Peirce"],
+    cevap: 0
+  },
+  {
+    soru: "84.  Frege'nin mantığını geleneksel Aristoteles mantığından ayıran en önemli özellik, aşağıdakilerden hangisinde doğru olarak verilmiştir? (8Ünite)",
+    secenekler: ["A) Karşıtlıklar karesinin oluşturulması", "B) Çelişmezlik ilkesi ile üçüncü halin imkansızlığı ilkesini formüle etme ", "C) Kategorik önermelerin biçimselleştirilmesi", "D) Değişkenleri bağlayacak şekilde niceleyicilerin kullanımı", "E) Kategorik önermeler arasındaki doğruluk olanaklarının açıklanması"],
+    cevap: 3
+  },
+  {
+    soru: "85.  Willard Van Orman Quine, mantığı aşağıdakilerden hangisiyle sınırlamıştır? (14Ünite)",
+    secenekler: ["A) Klasik iki değerli birinci - dereceden mantıklar ", "B) Yönelim kavramları barındıran formel sistemler, özellikle modalite", "C) İkinci - dereceden mantık", "D) Kümeler kuramı", "E) Principia Mathematica'da mantık olarak yazılanların çoğu"],
+    cevap: 0
+  },
+  {
+    soru: "86.  Frege, Kavram Yazısı eserindeki ‘≡’ imi hariç tüm sembolleri korumuştur; ‘≡’ imi yerine de basit matematik imi olan",
+    secenekler: ["A) Parantez", "B) Eşitlik ", "C) Artı", "D) Eksi", "E) Çarpı"],
+    cevap: 1
+  },
+  {
+    soru: "87.  Küme paradokslarının ortaya çıkma nedeni aşağıdakilerden hangisinde verilmiştir? (11Ünite)",
+    secenekler: ["A) Matematik", "B) Kısırdöngü ", "C) Mantık", "D) Sayılar", "E) Özellikler düşüncesi"],
+    cevap: 1
+  },
+  {
+    soru: "88.  Frege, kendi sistemine tanım ile yeni ifadeler sokulacağında gözlemlenecek yedi ilke koyarak bu tehlikeye karşı korunmaya çalışmıştırAşağıdakilerden hangisi bu yedi ilkeden biri değildir?",
+    secenekler: ["A) Tanımlanmış bir ad basit olmalıdır yani diğer adlardan meydana gelmemelidir ", "B) Aynı im iki farklı şekilde tanımlanabilir", "C) Tanımlanmış adlardan doğru bir şekilde oluşturulan her adın bir gönderimi olmalıdır", "D) Birinci dereceden tek savlı bir fonksiyon için öne sürülen bir adın sadece tek sav alanı bulunması gerekir", "E) Tanın ile ileri sürülen bir özel ad her ortaya çıkışında tanımlayanlarınca değiştirilebilir olmalıdır ve hiçbir zaman bir fonksiyon adı olarak kullanılmamalıdır."],
+    cevap: 0
+  },
+  {
+    soru: "89.  Frege'nin mantık notasyonu ayrıntılı ve karmaşık bir yapıda olduğu için az sayıda sembolden oluşturulmuş sistemlerin kullanımına geçilmiştir Aşağıdakilerden hangisi bu sistemleri en yaygın kullananlardandır? (10 Ünite)",
+    secenekler: ["A) Philon", "B) Lukasiewicz ", "C) Aristoteles", "D) Peano", "E) Hilbert"],
+    cevap: 1
+  },
+  {
+    soru: "90.  Aşağıdakilerden hangisi analitik felsefenin kurucularındandır? (12 Ünite)",
+    secenekler: ["A) Bertrand Russell ", "B) Peano", "C) Schröder", "D) Boole", "E) Dedekind"],
+    cevap: 0
+  },
+  {
+    soru: "91.  Alfred Tarski tarafından 1936'da yayınlanan \"Matematiksel Sonuç Kavramı Üzerine\" adlı makalede aşağıdakilerden hangisi iddia edilmiştir? (13 Ünite)",
+    secenekler: ["A) Bir çıkarımın sonucu öncüllerden olumsal olarak çıkar.", "B) Bir çıkarımın sonucu öncüllerden mantıksal olarak çıkar ancak ve ancak öncüllerin her modeli sonucun da modeli değil ise.", "C) Bir çıkarımın sonucu öncüllerden mantıksal olarak çıkmaz.", "D) Bir çıkarımın sonucu öncüllerden mantıksal olarak çıkar ancak ve ancak öncüllerin her modeli sonucun da modeli ise. ", "E) Bir çıkarımın sonucu öncüllerden mantıksal olarak çıkmaz ancak ve ancak öncüllerin her modeli sonucun da modeli ise."],
+    cevap: 3
+  },
+  {
+    soru: "92.  Frege, Russell'in ortaya koyduğu küme paradoksundan kurtulmak için ne yapmıştır? (11Ünite)",
+    secenekler: ["A) Mantığı bırakmıştır.", "B) Aritmetiğin mantıkla temellendirilemeyeceğini kabul etmiştir. ", "C) Sistemdeki beşinci aksiyomu değiştirmiştir.", "D) Küme kuramından vazgeçmiştir.", "E) Paradoksu kabul etmemiştir."],
+    cevap: 2
+  },
+  {
+    soru: "93.  Aşağıdakilerden hangisi \"Sembolik Mantık Araştırması\" kitabının yazarıdır? (10 Ünite)",
+    secenekler: ["A) Boole", "B) Tarski", "C) Lewis ", "D) Frege", "E) Gödel"],
+    cevap: 2
+  },
+  {
+    soru: "94.  Kavram, fikir ve kuramlarımızın doğruluklarını, onların yararlılıklarıyla özdeşleştiren ve pragmatizmin kurucusu sayılan Amerikalı filozof kimdir? (4Ünite)",
+    secenekler: ["a) Frege", "b) Peirce", "c) Venn", "d) Tarski", "e) Gödel"],
+    cevap: 1
+  },
+  {
+    soru: "95. “Akşam Yıldızı Sabah Yıldızı’yla özdeştir” ifadesindeki Akşam Yıldızı ile Sabah Yıldızı adlarının anlamı ……… gönderimi …’dırYukarıdaki cümlede boşluklara sırayla hangi sözcükler yerleştirilmelidir? (8Ünite)",
+    secenekler: ["a)farklı-aynı*", "b)aynı-farklı", "c)özdeş-özdeş değil", "d)özdeş değil-özdeş", "e)benzer-benzer değil"],
+    cevap: 0
+  },
+  {
+    soru: "96.  David Hilbert’in, Öklid geometrisini kesin bir aksiyomlar sistemi olarak ortaya koyduğu eseri hangisidir? (12Ünite)",
+    secenekler: ["a.Geometrinin Temelleri", "b.Mathematiche Annalen", "c.Matematiksel Mantığın İlkeleri", "d.Principia Mathematica", "e.Mantıksal Sorgulamalar"],
+    cevap: 0
+  },
+  {
+    soru: "97.  Frege’nin oluşturduğu yeni mantık diliyle ilgili aşağıdakilerden hangisi yanlıştır? (7 Ünite)",
+    secenekler: ["a. Dilinde kategorik, hipotetik ve ayrık önermeler ayrımı yaptı", "b. Modalite ayrımlarının gözardı edildiği bir dil düşündü", "c. Tüm ifadelerin aynı yükleme, yani bir olgudur yüklemine sahip olduğu bir dil düşündü", "d. Dilinde koşullu önermelere yer verdi", "e. Bir yargının tüm içeriğinin bir özne olarak ifade edildiği bir dil düşündü"],
+    cevap: 2
+  },
+  {
+    soru: "98. Hilbert’in integralli denklemler üzerine çalışmaları fonksiyonel analizi geliştirmiştir Bu çalışmaları günümüzde …… olarak adlandırılan sonsuz boyutlu uzay kavramının ortaya çıkmasıyla neticelenmiştir Boşluğa gelmesi gereken uygun seçenek aşağıdakilerden hangisidir? (12 Ünite)",
+    secenekler: ["A)Hibert’in zamanı", "B)Hilbert’in uzayı", "C)Hilbert’in denklemi", "D)Hilbert’in tezi", "E)Hilbert’in önerisi"],
+    cevap: 1
+  },
+  {
+    soru: "99.  İlk formel kapsamlı modern mantığın esas özelliklerinin tümünü kapsayan eser aşağıdakilerden hangisidir? (7 Ünite)",
+    secenekler: ["a.Begriffsschrif ", "b.Grundgesetze", "c.Matematiğin İlkeleri", "d.Matematik Formülleri", "e.Geometrinin Temelleri"],
+    cevap: 0
+  },
+  {
+    soru: "100. Aşağıdakilerden hangisi cebrin kurallarından değildir? (2 Ünite)",
+    secenekler: ["a) a ve b elemanlar ise a+b de elamandır", "b) a ve b elemanlar ise axb de elemandır", "c) Tüm a,b, ve c elemanları için a+(bxc)=(axb)+(axc) ve söz konusu kombinasyonlar da elemandır", "d) Her a elemanı için ax1=a denklemini sağlayan bir 0 elemanı vardır", "e) Her a elemanı için ax1=a denklemini sağlayan bir 1 elemanı vardır"],
+    cevap: 2
+  },
+  {
+    soru: "101.  Cantor’un ünlü diyagonal yöntemi neyi ispat eder? (6 Ünite)",
+    secenekler: ["a. İrrasyonel sayılarla doğal sayıların tam eşlemeye sokulabildiğini", "b. 0 ile 1 arasındaki reel sayıların 10 ile 11 aralığındaki reel sayılardan daha alt dereceden bir sonsuzluğa sahip olduklarını", "c. 0 ile 1 arasındaki reel sayıların doğal sayılardan daha üst dereceden bir sonsuzluğa sahip olduklarını", "d. Rasyonel sayılarla doğal sayıların tam eşlemeye sokulabildiğini *", "e. İrrasyonel sayılarla rasyonel sayıların tam eşlemeye sokulabildiğini"],
+    cevap: 3
+  },
+  {
+    soru: "102.  Aşağıdaki kümelerle ilgili ifadelerden hangisi doğrudur? (6 Ünite)",
+    secenekler: ["a. İşaretli tam sayılar kümesinin sayal sayısı pozitif", "d. Sonlu bir kümenin sayal sayısı kendi öz alt kümesinin sayal sayısından büyüktür", "c. Reel sayılar kümesinin sayal sayısı 0 ile 1 arasındaki reel sayıların sayal sayısından büyüktür", "d. Reel sayılar kümesinin sayal sayısı doğal sayılar kümesinin sayal sayısından büyüktür.", "e. Pozitif tam sayılar kümesinin sayal sayısı pozitif tam sayıların karelerinin sayal sayısından büyüktür"],
+    cevap: 2
+  },
+  {
+    soru: "103.  Frege’ye göre aşağıdaki önermelerden hangisinin kavramsal içeriği diğerlerinden farklıdır? (7 Ünite)",
+    secenekler: ["a. Ali Ayşe’yi seviyor", "b. Ayşe Ali olan nesne tarafından seviliyor.", "c. Ali Ayşe olan nesneyi seviyor.", "d. Ayşe Ali tarafından seviliyor*", "e.Ayşe Ali’yi seviyor."],
+    cevap: 4
+  },
+  {
+    soru: "104.  Aşağıdakilerden hangisi Boole’un yaptıklarından biri değildir? (3Ünite)",
+    secenekler: ["a. On dört yaşında Yunan şari Meleager’in yazdığı kasidenin çevirisini yapmıştır.", "b. Hristiyanlıktaki üçlemeyi uzayın üç boyutu ile karşılaştırmıştır.*", "c. Boole problemlerini çözmek için bir mantık makinesi yapmıştır", "d. Lincoln’de Klasik Ticaret ve Matematik Akademisi’ni açmıştır", "e. Cork’da bulunan Queen’s Kolejinin rektörü olmuştur."],
+    cevap: 1
+  },
+  {
+    soru: "105.  Aşağıdaki matematikçilerden hangisi Öklitçi olmayan geometriyle ilgilenmemiştir?",
+    secenekler: ["a. Labochevsky", "b. Gauss", "c. Montucia", "d. Saccheri", "e. Riemann"],
+    cevap: 2
+  },
+  {
+    soru: "106.  Herhangi bir aksiyom kümesi için aşağıdakilerden hangisi zorunlu değildir? (1 Ünite)",
+    secenekler: ["a. Geçerlilik", "b. Karşıtlık", "c. Tutarlılık", "d. Özdeşlik", "e. İki aksiyomun birbirinden bağımsız olması*"],
+    cevap: 4
+  },
+  {
+    soru: "107.  Cantor’u izleyen bilim adamları “küme” terimi yerine aşağıdaki terimlerden hangisini kullanmamıştır? (6Ünite)",
+    secenekler: ["a. Bütünlük", "b. Sınıf ", "c. Birlik", "d. Grup", "e. Topluluk"],
+    cevap: 3
+  },
+  {
+    soru: "108.  Mantıkta niceleyicileri ilk kez kullanan mantıkçı aşağıdakilerden hangisidir? (9Ünite)",
+    secenekler: ["a. Peirce", "b. De Morgan", "c. Venn", "d. Frege ", "e. Boole"],
+    cevap: 3
+  },
+  {
+    soru: "109.  Aşağıdaki terimlerden hangisi kümeler kuramına ait bir terim değildir? (6 Ünite)",
+    secenekler: ["a. Özdeş", "b. Geçişli", "c. Eleman", "d. Eşdeğer", "e. Kuvvet"],
+    cevap: 1
+  },
+  {
+    soru: "110.  Aşağıdaki terimlerden hangisi simetri bağıntısının eşdeğeridir? (5 Ünite)",
+    secenekler: ["a. Geçişlilik", "b. Benzerlik", "c. Çevrilemezlik", "d. Yansımalılık", "e. Evrilebilirlik*"],
+    cevap: 4
+  },
+  {
+    soru: "111.  Geometrinin Temelleri başlıklı eser hangi düşünüre aittir? (12 Ünite)",
+    secenekler: ["a. Labochevsky", "b. Hilbert*", "c. John Wallis", "d. Boyle", "e. Saccheri"],
+    cevap: 1
+  },
+  {
+    soru: "112.  Aşağıdaki önermelerden hangisi geçişli bir bağıntıyı ifade etmez? (5 Ünite)",
+    secenekler: ["a. Ali Ayşe’den büyüktür", "b. Ayşe Ali’nin annesidir", "c. Ali Ayşe’yi sever*", "d. Ali Ayşe’den uzundur.", "e. Ali Ayşe’den şişmandır"],
+    cevap: 2
+  },
+  {
+    soru: "113.  Aşağıdakilerden hangisi Boole’un eserlerinden biri değildir? (3 Ünite)",
+    secenekler: ["a. Analizde Genel Bir Metot Üzerine", "b. Mantığın Matematiksel Analizi", "c. Varyasyon Hesabındaki Belirli Teoremler Üzerine", "d. Düşünce Yasaları", "e. Formel Mantık*"],
+    cevap: 4
+  },
+  {
+    soru: "114.  Aşağıdaki terimlerden hangisi Peirce’ün bağıntılar mantığına özgü bir terim değildir? (5 Ünite)",
+    secenekler: ["a. Bağıl Toplam", "b. İkon Tarzı", "c. Mantıksal Toplam*", "d. İndeks", "e. Bağıl Çarpım"],
+    cevap: 2
+  },
+  {
+    soru: "115.  Hangisi Frege’nin nesnelere ilişkin görüşlerinden biri olamaz? (8Ünite)",
+    secenekler: ["a. Nesneler hem düşünsel hem de algılanabilir yapıda olabilmektedir", "b. Nesneler eksiksiz yapılardır", "c. Nesnelerin yalnızca algılanabilir şeyler olduklarını düşünmek insan doğasının bir zayıflığıdır", "d. Nesneler fonksiyon değildir", "e. Nesneler yalnızca algılanabilir somut cisimlere işaret etmektedir (emin değilim)"],
+    cevap: 4
+  },
+];
 
-    async function fetchQuestions() {
-      try {
-        const res = await fetch(DATA_URL);
-        const data = await res.json();
 
-        questions = data.map(q => ({
-          question: q.Question,
-          options: [q["Option 1"], q["Option 2"], q["Option 3"], q["Option 4"], q["Option 5"]],
-          answer: ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"].indexOf(q["Correct Option"])
-        }));
+let aktifSoru = 0;
+let puan = 0;
+let kullaniciCevaplar = new Array(sorular.length).fill(null);
 
-        populateDropdown();
-        loadQuestion();
-      } catch (error) {
-        alert("Failed to load questions.");
-        console.error(error);
-      }
-    }
+function gosterSoru() {
+  const s = sorular[aktifSoru];
+  document.getElementById("soru-metin").innerText = `Soru ${aktifSoru + 1}: ${s.soru}`;
 
-    function loadQuestion() {
-      if (currentQuestionIndex >= questions.length) return showScore();
+  const seceneklerDiv = document.getElementById("secenekler");
+  seceneklerDiv.innerHTML = "";
 
-      const q = questions[currentQuestionIndex];
-      document.getElementById("question").textContent = `${currentQuestionIndex + 1}. ${q.question}`;
+  s.secenekler.forEach((secenek, i) => {
+    const btn = document.createElement("button");
+    btn.innerText = secenek;
+    btn.onclick = () => cevapSec(i);
+    seceneklerDiv.appendChild(btn);
+  });
 
-      const optionsContainer = document.getElementById("options");
-      optionsContainer.innerHTML = "";
+  document.getElementById("soru-sec").value = aktifSoru;
+  document.getElementById("geri-bildirim").innerText = "";
+}
 
-      q.options.forEach((opt, i) => {
-        const btn = document.createElement("button");
-        btn.textContent = opt;
-        btn.onclick = () => checkAnswer(i);
-        optionsContainer.appendChild(btn);
-      });
+function cevapSec(index) {
+  if (kullaniciCevaplar[aktifSoru] !== null) return;
 
-      saveProgress();
-    }
+  kullaniciCevaplar[aktifSoru] = index;
+  const dogruMu = index === sorular[aktifSoru].cevap;
+  const geri = document.getElementById("geri-bildirim");
+  geri.innerText = dogruMu ? "✅ Doğru!" : `❌ Yanlış! Doğru Cevap: ${sorular[aktifSoru].secenekler[sorular[aktifSoru].cevap]}`;
+  if (dogruMu) puan++;
+}
 
-    function checkAnswer(selectedIndex) {
-      const correctIndex = questions[currentQuestionIndex].answer;
+function cevapla() {
+  if (kullaniciCevaplar[aktifSoru] === null) {
+    alert("Lütfen bir cevap seçin.");
+    return;
+  }
+}
 
-      if (!answered.includes(currentQuestionIndex)) {
-        if (selectedIndex === correctIndex) {
-          score++;
-        }
-        answered.push(currentQuestionIndex);
-        alert(selectedIndex === correctIndex ? "Correct!" : `Wrong! Correct answer: ${questions[currentQuestionIndex].options[correctIndex]}`);
-      } else {
-        alert("You already answered this question.");
-      }
+function sonrakiSoru() {
+  if (kullaniciCevaplar[aktifSoru] === null) {
+    alert("Lütfen cevabınızı girin.");
+    return;
+  }
+  if (aktifSoru < sorular.length - 1) {
+    aktifSoru++;
+    gosterSoru();
+  } else {
+    sonucuGoster();
+  }
+}
 
-      currentQuestionIndex++;
-      loadQuestion();
-    }
+function soruListesiniDoldur() {
+  const sec = document.getElementById("soru-sec");
+  sec.innerHTML = "";
+  for (let i = 0; i < sorular.length; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = `Soru ${i + 1}`;
+    sec.appendChild(opt);
+  }
+  sec.addEventListener("change", (e) => {
+    aktifSoru = parseInt(e.target.value);
+    gosterSoru();
+  });
+}
 
-    function showScore() {
-      document.getElementById("quiz-container").style.display = "none";
-      document.getElementById("score-container").style.display = "block";
-      document.getElementById("score-text").textContent = `You scored ${score} out of ${questions.length}!`;
+function testiBitir() {
+  sonucuGoster();
+}
 
-      localStorage.clear();
-    }
+function sonucuGoster() {
+  document.getElementById("test").style.display = "none";
+  document.getElementById("navigasyon").style.display = "none";
+  document.getElementById("sonuc").innerText = `Toplam ${sorular.length} sorudan ${puan} doğru cevap verdiniz.`;
+  document.getElementById("bastan").style.display = "block";
+}
 
-    function finishQuiz() {
-      showScore();
-    }
+function bastanBasla() {
+  aktifSoru = 0;
+  puan = 0;
+  kullaniciCevaplar = new Array(sorular.length).fill(null);
+  document.getElementById("test").style.display = "block";
+  document.getElementById("navigasyon").style.display = "block";
+  document.getElementById("sonuc").innerText = "";
+  document.getElementById("bastan").style.display = "none";
+  gosterSoru();
+}
 
-    function restartQuiz() {
-      score = 0;
-      currentQuestionIndex = 0;
-      answered = [];
-      localStorage.clear();
+soruListesiniDoldur();
+gosterSoru();
+</script>
 
-      document.getElementById("quiz-container").style.display = "block";
-      document.getElementById("score-container").style.display = "none";
-
-      loadQuestion();
-    }
-
-    function populateDropdown() {
-      const select = document.getElementById("questionSelect");
-      select.innerHTML = "";
-      questions.forEach((_, index) => {
-        const option = document.createElement("option");
-        option.value = index;
-        option.textContent = index + 1;
-        select.appendChild(option);
-      });
-    }
-
-    function goToQuestion() {
-      const index = parseInt(document.getElementById("questionSelect").value);
-      currentQuestionIndex = index;
-      loadQuestion();
-    }
-
-    function saveProgress() {
-      localStorage.setItem("currentIndex", currentQuestionIndex);
-      localStorage.setItem("score", score);
-      localStorage.setItem("answered", JSON.stringify(answered));
-    }
-
-    fetchQuestions();
-  </script>
 </body>
 </html>
